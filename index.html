@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PhD Research News Dashboard | Online News Scraper</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="glow-bg"></div>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo-area">
+                <span class="logo-icon">📊</span>
+                <h1>Research News Dashboard</h1>
+            </div>
+            <p class="subtitle">Scrape, analyze, and export up to 100 research-relevant articles instantly</p>
+        </header>
+
+        <!-- Search Section -->
+        <section class="search-section card">
+            <div class="search-title">
+                <h3>🔍 Search News Articles</h3>
+                <span class="badge">Google News Crawler</span>
+            </div>
+            <div class="search-box">
+                <div class="input-wrapper">
+                    <input type="text" id="searchInput"
+                        placeholder="Enter search terms or research topic (e.g. quantum computing, microplastics, remote work)..." autofocus />
+                    <span class="input-icon">🔍</span>
+                </div>
+                <div class="controls-wrapper">
+                    <select id="maxResults" title="Maximum results to return">
+                        <option value="10">10 Articles</option>
+                        <option value="25">25 Articles</option>
+                        <option value="50">50 Articles</option>
+                        <option value="100" selected>100 Articles</option>
+                    </select>
+                    <button id="searchBtn" class="btn btn-primary">
+                        <span class="btn-text">Search News</span>
+                        <span class="btn-icon">⚡</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Loading Indicator -->
+        <div id="loadingIndicator" class="loading-indicator card" style="display: none;">
+            <div class="spinner-container">
+                <div class="spinner"></div>
+                <div class="spinner-glow"></div>
+            </div>
+            <p id="loadingMessage">Fetching articles & decoding links...</p>
+        </div>
+
+        <!-- Error Message -->
+        <div id="errorMessage" class="error-message card" style="display: none;"></div>
+
+        <!-- Dashboard Dashboard Widgets Section -->
+        <section id="analyticsSection" class="analytics-section" style="display: none;">
+            <!-- KPI Cards -->
+            <div class="kpi-grid">
+                <div class="kpi-card card">
+                    <div class="kpi-icon">📝</div>
+                    <div class="kpi-info">
+                        <span class="kpi-label">Articles Found</span>
+                        <h4 id="kpiTotal">0</h4>
+                    </div>
+                </div>
+                <div class="kpi-card card">
+                    <div class="kpi-icon">🌐</div>
+                    <div class="kpi-info">
+                        <span class="kpi-label">Unique Sources</span>
+                        <h4 id="kpiSources">0</h4>
+                    </div>
+                </div>
+                <div class="kpi-card card">
+                    <div class="kpi-icon">🏆</div>
+                    <div class="kpi-info">
+                        <span class="kpi-label">Top News Source</span>
+                        <h4 id="kpiTopSource" class="truncate-kpi">N/A</h4>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Analysis Widgets -->
+            <div class="widgets-grid">
+                <!-- Keyword Cloud -->
+                <div class="widget-card card">
+                    <h3>💡 Top Conceptual Keywords</h3>
+                    <p class="widget-desc">Extracted automatically from article headlines for topic mapping</p>
+                    <div id="keywordCloud" class="keyword-cloud">
+                        <!-- Dynamic keywords -->
+                    </div>
+                </div>
+                
+                <!-- Source Distribution -->
+                <div class="widget-card card">
+                    <h3>🏢 Source Distribution</h3>
+                    <p class="widget-desc">Interactive ranking. Click a source to filter articles.</p>
+                    <div id="sourceDistribution" class="source-distribution">
+                        <!-- Dynamic source rows -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Results Section -->
+        <section id="resultsSection" class="results-section" style="display: none;">
+            <div class="results-header card">
+                <div class="results-left">
+                    <h2 id="resultsCount">Search Results</h2>
+                </div>
+                <div class="results-actions">
+                    <!-- Client filters -->
+                    <div class="filter-controls">
+                        <input type="text" id="tableFilter" placeholder="Filter current results..." />
+                        <select id="sortSelect" title="Sort articles">
+                            <option value="default">Default Order</option>
+                            <option value="date-desc">Date (Newest)</option>
+                            <option value="date-asc">Date (Oldest)</option>
+                            <option value="title-asc">Title (A-Z)</option>
+                            <option value="source-asc">Source (A-Z)</option>
+                        </select>
+                    </div>
+                    <!-- View toggle -->
+                    <div class="view-toggle">
+                        <button id="viewTableBtn" class="toggle-btn active" title="Table View">📊 Table</button>
+                        <button id="viewCardsBtn" class="toggle-btn" title="Cards View">📇 Cards</button>
+                    </div>
+                    <!-- Export button -->
+                    <button id="exportBtn" class="btn btn-success">
+                        <span class="btn-text">Export to Excel</span>
+                        <span class="btn-icon">📥</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Table View Container -->
+            <div id="tableViewContainer" class="table-container card">
+                <table id="resultsTable">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Headline</th>
+                            <th>Description Snippet</th>
+                            <th>Source</th>
+                            <th>Date</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="resultsBody">
+                        <!-- Results will be inserted here -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Cards View Container -->
+            <div id="cardsViewContainer" class="cards-container" style="display: none;">
+                <!-- Dynamic cards -->
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>PhD Research Dashboard &copy; 2026. Made with ❤️ using News Scraper Crawler Engine.</p>
+        </footer>
+    </div>
+
+    <!-- Article Reader Modal -->
+    <div id="articleModal" class="modal-overlay" style="display: none;">
+        <div class="modal-card card">
+            <button id="modalClose" class="modal-close-btn">&times;</button>
+            <div class="modal-header">
+                <span id="modalSource" class="modal-source-badge">Source</span>
+                <span id="modalDate" class="modal-date-badge">Date</span>
+            </div>
+            <h2 id="modalTitle">Article Title</h2>
+            <div id="modalAuthors" class="modal-authors">Authors: N/A</div>
+            
+            <div class="modal-content-area">
+                <div id="modalImageContainer" class="modal-image-container" style="display: none;">
+                    <img id="modalImage" src="" alt="Article image" />
+                </div>
+                <div id="modalLoader" class="modal-loader" style="display: none;">
+                    <div class="spinner-small"></div>
+                    <p>Loading full text summary...</p>
+                </div>
+                <div id="modalText" class="modal-text">
+                    <!-- Article text will go here -->
+                </div>
+            </div>
+            
+            <div class="modal-footer">
+                <a id="modalLink" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-primary">
+                    <span>Visit Original Article</span>
+                    <span>→</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
