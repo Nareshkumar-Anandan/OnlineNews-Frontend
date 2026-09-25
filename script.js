@@ -1,6 +1,18 @@
 // API Configuration
-// Automatically adapts to the current server host in production, or falls back to localhost:5000
-const API_BASE_URL = 'https://onlinenewsscrapper.onrender.com';
+// Automatically adapts to the current server host in production / localhost, or falls back to Render deployment
+const API_BASE_URL = (function() {
+    if (typeof window !== 'undefined' && window.location) {
+        const hostname = window.location.hostname;
+        const origin = window.location.origin;
+        if (hostname === 'localhost' || hostname === '127.0.0.1') {
+            return window.location.port ? origin : 'http://localhost:5000';
+        }
+        if (origin && origin.startsWith('http') && !window.location.protocol.startsWith('file')) {
+            return origin;
+        }
+    }
+    return 'https://onlinenewsscrapper.onrender.com';
+})();
 
 
 // Global state
@@ -513,46 +525,85 @@ function closeModal() {
     document.body.style.overflow = ''; // Unlock scroll
 }
 
-// Export Excel handler
+// Export Excel handler with multi-tier resilient fallback
 async function handleExport() {
-    if (!currentSearchId) {
-        showError('No search results to export. Try a new search.');
+    const exportArticles = (currentFilteredArticles && currentFilteredArticles.length > 0)
+        ? currentFilteredArticles
+        : allFetchedArticles;
+
+    if (!exportArticles || exportArticles.length === 0) {
+        showError('No search results to export. Try searching for news first.');
         return;
     }
 
+    const originalBtnHTML = exportBtn.innerHTML;
     try {
         exportBtn.disabled = true;
-        const originalBtnHTML = exportBtn.innerHTML;
         exportBtn.innerHTML = '<span class="btn-text">Exporting...</span><span class="btn-icon">⏳</span>';
 
-        const response = await fetch(`${API_BASE_URL}/api/export/${currentSearchId}`);
+        const cleanQuery = (lastQuery || 'news').replace(/[^a-zA-Z0-9_-]/g, '_');
+        const timestamp = new Date().toISOString().replace(/[-:T.]/g, '').slice(0, 14);
+        let filename = `news_${cleanQuery}_${timestamp}.xlsx`;
 
-        if (!response.ok) {
-            const data = await response.json();
-            throw new Error(data.error || 'Failed to export results');
-        }
+        let exported = false;
 
-        // Get filename from Header or fallback
-        const disposition = response.headers.get('Content-Disposition');
-        let filename = `news_export_${new Date().toISOString().slice(0,10)}.xlsx`;
-        if (disposition) {
-            const match = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(disposition);
-            if (match && match[1]) {
-                filename = match[1].replace(/['"]/g, '');
+        // Strategy 1: Try cached search ID export
+        if (currentSearchId) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/export/${currentSearchId}`);
+                if (response.ok) {
+                    const disposition = response.headers.get('Content-Disposition');
+                    if (disposition) {
+                        const match = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(disposition);
+                        if (match && match[1]) filename = match[1].replace(/['"]/g, '');
+                    }
+                    const blob = await response.blob();
+                    triggerDownload(blob, filename);
+                    exported = true;
+                } else {
+                    console.warn(`Search ID export returned status ${response.status}. Attempting direct POST export...`);
+                }
+            } catch (err) {
+                console.warn('Strategy 1 error, attempting Strategy 2:', err);
             }
         }
 
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
+        // Strategy 2: Try direct POST export with article payload
+        if (!exported) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/export`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        query: lastQuery || 'news',
+                        articles: exportArticles
+                    })
+                });
 
-        // Success state brief visual
+                if (response.ok) {
+                    const disposition = response.headers.get('Content-Disposition');
+                    if (disposition) {
+                        const match = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(disposition);
+                        if (match && match[1]) filename = match[1].replace(/['"]/g, '');
+                    }
+                    const blob = await response.blob();
+                    triggerDownload(blob, filename);
+                    exported = true;
+                } else {
+                    console.warn(`Direct POST export returned status ${response.status}. Falling back to client-side export...`);
+                }
+            } catch (err) {
+                console.warn('Strategy 2 error, falling back to Strategy 3 (client-side):', err);
+            }
+        }
+
+        // Strategy 3: Client-side Excel (SheetJS) or CSV fallback
+        if (!exported) {
+            exportClientSide(exportArticles, filename);
+            exported = true;
+        }
+
+        // Success state visual feedback
         exportBtn.innerHTML = '<span class="btn-text">Exported!</span><span class="btn-icon">✅</span>';
         setTimeout(() => {
             exportBtn.innerHTML = originalBtnHTML;
@@ -563,8 +614,64 @@ async function handleExport() {
         console.error('Export error:', error);
         showError(`Export failed: ${error.message}`);
         exportBtn.disabled = false;
-        exportBtn.innerHTML = '<span class="btn-text">Export to Excel</span><span class="btn-icon">📥</span>';
+        exportBtn.innerHTML = originalBtnHTML;
     }
+}
+
+// Client-side Excel or CSV export fallback
+function exportClientSide(articles, filename) {
+    const formattedData = articles.map((art, idx) => ({
+        '#': idx + 1,
+        'Title': art.title || 'N/A',
+        'Description': art.description || 'N/A',
+        'Author': art.author || 'N/A',
+        'Source': art.source || 'N/A',
+        'Published Date': art.published_date || 'N/A',
+        'URL': art.url || 'N/A',
+        'Image URL': art.image_url || 'N/A'
+    }));
+
+    if (typeof XLSX !== 'undefined') {
+        const worksheet = XLSX.utils.json_to_sheet(formattedData);
+        // Set column widths
+        worksheet['!cols'] = [
+            { wch: 5 },   // #
+            { wch: 40 },  // Title
+            { wch: 50 },  // Description
+            { wch: 20 },  // Author
+            { wch: 20 },  // Source
+            { wch: 25 },  // Published Date
+            { wch: 40 },  // URL
+            { wch: 30 }   // Image URL
+        ];
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'News Articles');
+        XLSX.writeFile(workbook, filename);
+    } else {
+        // Fallback to CSV if XLSX library is not yet loaded
+        const csvFilename = filename.replace(/\.xlsx$/, '.csv');
+        const headers = ['#', 'Title', 'Description', 'Author', 'Source', 'Published Date', 'URL', 'Image URL'];
+        const csvRows = [
+            headers.join(','),
+            ...formattedData.map(row => 
+                headers.map(h => `"${String(row[h] || '').replace(/"/g, '""')}"`).join(',')
+            )
+        ];
+        const csvBlob = new Blob([csvRows.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+        triggerDownload(csvBlob, csvFilename);
+    }
+}
+
+// Helper to trigger browser file download
+function triggerDownload(blob, filename) {
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
 }
 
 // UI State Management Utilities
