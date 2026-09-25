@@ -1,18 +1,18 @@
 // API Configuration
-// Automatically adapts to the current server host in production / localhost, or falls back to Render deployment
+// Points to the backend API on Render in production, or localhost:5000 when developing locally
 const API_BASE_URL = (function() {
     if (typeof window !== 'undefined' && window.location) {
         const hostname = window.location.hostname;
-        const origin = window.location.origin;
         if (hostname === 'localhost' || hostname === '127.0.0.1') {
-            return window.location.port ? origin : 'http://localhost:5000';
+            return window.location.port === '5000' ? window.location.origin : 'http://localhost:5000';
         }
-        if (origin && origin.startsWith('http') && !window.location.protocol.startsWith('file')) {
-            return origin;
+        if (hostname.includes('onlinenewsscrapper.onrender.com')) {
+            return window.location.origin;
         }
     }
     return 'https://onlinenewsscrapper.onrender.com';
 })();
+
 
 
 // Global state
@@ -714,6 +714,9 @@ function escapeHtml(text) {
 async function checkBackendHealth() {
     try {
         const response = await fetch(`${API_BASE_URL}/api/health`);
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
         const data = await response.json();
 
         if (data.status === 'healthy') {
@@ -731,8 +734,9 @@ async function checkBackendHealth() {
             }
         }
     } catch (e) {
-        console.error('Could not connect to Backend server:', e);
-        showError(`Cannot connect to the News Scraper Backend API on ${API_BASE_URL}. Ensure it is running!`);
+        console.warn('Backend health check notice:', e);
+        // On free-tier Render, backend can take ~30-50s to wake up on first visit
+        console.log(`Backend API is configured at ${API_BASE_URL}`);
     }
 }
 
