@@ -517,10 +517,12 @@ body {
 
 .filter-controls {
     display: flex;
+    align-items: center;
     gap: 10px;
+    flex-wrap: wrap;
 }
 
-.filter-controls input {
+.filter-controls input[type="text"] {
     background: rgba(0, 0, 0, 0.2);
     border: 1px solid var(--card-border);
     padding: 10px 15px;
@@ -528,19 +530,89 @@ body {
     color: #fff;
     border-radius: 8px;
     outline: none;
-    width: 180px;
+    width: 170px;
     transition: var(--transition);
 }
 
-.filter-controls input:focus {
+.filter-controls input[type="text"]:focus {
     border-color: var(--accent-purple);
-    width: 220px;
+    width: 200px;
+}
+
+/* Date Filter Group */
+.date-filter-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid var(--card-border);
+    padding: 5px 12px;
+    border-radius: 8px;
+    transition: var(--transition);
+}
+
+.date-filter-group:hover,
+.date-filter-group:focus-within {
+    border-color: rgba(157, 78, 221, 0.5);
+    background: rgba(157, 78, 221, 0.08);
+}
+
+.date-filter-label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    user-select: none;
+}
+
+.date-filter-group input[type="date"] {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 5px 8px;
+    font-size: 0.82rem;
+    color: #fff;
+    border-radius: 6px;
+    outline: none;
+    cursor: pointer;
+    color-scheme: dark;
+    font-family: inherit;
+    transition: var(--transition);
+}
+
+.date-filter-group input[type="date"]:hover,
+.date-filter-group input[type="date"]:focus {
+    border-color: var(--accent-cyan);
+    background: rgba(0, 242, 254, 0.08);
+}
+
+.clear-date-btn {
+    background: rgba(239, 68, 68, 0.2);
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    color: #fca5a5;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: var(--transition);
+    padding: 0;
+    line-height: 1;
+}
+
+.clear-date-btn:hover {
+    background: rgba(239, 68, 68, 0.4);
+    color: #fff;
+    transform: scale(1.1);
 }
 
 .filter-controls select {
     background: rgba(0, 0, 0, 0.2);
     border: 1px solid var(--card-border);
     padding: 0 15px;
+    height: 38px;
     font-size: 0.85rem;
     color: #fff;
     border-radius: 8px;

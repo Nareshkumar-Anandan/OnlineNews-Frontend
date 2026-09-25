@@ -47,6 +47,9 @@ const sourceDistribution = document.getElementById('sourceDistribution');
 
 // Controls & View Elements
 const tableFilter = document.getElementById('tableFilter');
+const fromDateInput = document.getElementById('fromDate');
+const toDateInput = document.getElementById('toDate');
+const clearDateBtn = document.getElementById('clearDateBtn');
 const sortSelect = document.getElementById('sortSelect');
 const viewTableBtn = document.getElementById('viewTableBtn');
 const viewCardsBtn = document.getElementById('viewCardsBtn');
@@ -77,6 +80,14 @@ searchInput.addEventListener('keypress', (e) => {
 
 // Filter & Sort Listeners
 tableFilter.addEventListener('input', applyFiltersAndRender);
+fromDateInput.addEventListener('change', applyFiltersAndRender);
+toDateInput.addEventListener('change', applyFiltersAndRender);
+clearDateBtn.addEventListener('click', () => {
+    fromDateInput.value = '';
+    toDateInput.value = '';
+    clearDateBtn.style.display = 'none';
+    applyFiltersAndRender();
+});
 sortSelect.addEventListener('change', applyFiltersAndRender);
 
 // View Toggle Listeners
@@ -176,6 +187,9 @@ async function handleSearch() {
 
         // Initialize display
         document.getElementById('tableFilter').value = '';
+        if (fromDateInput) fromDateInput.value = '';
+        if (toDateInput) toDateInput.value = '';
+        if (clearDateBtn) clearDateBtn.style.display = 'none';
         document.getElementById('sortSelect').value = 'default';
         
         // Display dashboard widgets and results
@@ -333,6 +347,27 @@ function applyFiltersAndRender() {
             (art.description && art.description.toLowerCase().includes(filterText)) ||
             (art.source && art.source.toLowerCase().includes(filterText))
         );
+    }
+
+    // Apply Date Range Filter (From Date to To Date)
+    const fromDateVal = fromDateInput.value;
+    const toDateVal = toDateInput.value;
+    
+    if (fromDateVal || toDateVal) {
+        clearDateBtn.style.display = 'inline-flex';
+        const fromDate = fromDateVal ? new Date(fromDateVal + 'T00:00:00') : null;
+        const toDate = toDateVal ? new Date(toDateVal + 'T23:59:59') : null;
+
+        filtered = filtered.filter(art => {
+            if (!art.published_date || art.published_date === 'N/A') return false;
+            const artDate = new Date(art.published_date);
+            if (isNaN(artDate.getTime())) return false;
+            if (fromDate && artDate < fromDate) return false;
+            if (toDate && artDate > toDate) return false;
+            return true;
+        });
+    } else {
+        clearDateBtn.style.display = 'none';
     }
 
     // Apply Sort Selection

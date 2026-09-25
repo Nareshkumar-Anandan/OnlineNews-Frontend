@@ -122,6 +122,13 @@
                     <!-- Client filters -->
                     <div class="filter-controls">
                         <input type="text" id="tableFilter" placeholder="Filter current results..." />
+                        <div class="date-filter-group">
+                            <span class="date-filter-label">📅 From:</span>
+                            <input type="date" id="fromDate" title="Filter from date" />
+                            <span class="date-filter-label">To:</span>
+                            <input type="date" id="toDate" title="Filter to date" />
+                            <button id="clearDateBtn" class="clear-date-btn" title="Reset date filters" style="display: none;">✕</button>
+                        </div>
                         <select id="sortSelect" title="Sort articles">
                             <option value="default">Default Order</option>
                             <option value="date-desc">Date (Newest)</option>
